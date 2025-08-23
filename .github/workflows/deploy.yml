@@ -23,18 +23,21 @@ jobs:
           cd ~/mygitdemo
           git pull origin main
 
-          # ==> FIX IS HERE <==
-          # Step 1: Install the package needed to create virtual environments
+          # Install venv package
           sudo apt-get update -y
           sudo apt-get install -y python3.12-venv
 
-          # Step 2: Now create and use the virtual environment
+          # Create and use virtual environment
           python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
 
-          # Step 3: Stop any old process
+          # Stop any old process
           pkill -f "venv/bin/python app.py" || true
           
-          # Step 4: Start the app using python from the virtual environment
+          # Start the app in the background
           nohup venv/bin/python app.py > app.log 2>&1 &
+
+          # ==> FIX IS HERE <==
+          # Wait for 2 seconds to let the process stabilize
+          sleep 2
