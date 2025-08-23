@@ -35,9 +35,6 @@ jobs:
           # Stop any old process
           pkill -f "venv/bin/python app.py" || true
           
-          # Start the app in the background
-          nohup venv/bin/python app.py > app.log 2>&1 &
-
           # ==> FIX IS HERE <==
-          # Wait for 2 seconds to let the process stabilize
-          sleep 2
+          # Start the app in a new session to prevent it from being terminated
+          setsid nohup venv/bin/python app.py > app.log 2>&1 &
