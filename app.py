@@ -1,38 +1,42 @@
-from flask import Flask, request, render_template_string
+name: Deploy to EC2
 
-app = Flask(__name__)
+on:
+  push:
+    branches: [ "main" ]
 
-# Home Page
-@app.route("/")
-def home():
-    return """
-    <h1>Welcome to My Flask App on AWS EC2!</h1>
-    <p>This app is deployed automatically using GitHub Actions 🚀</p>
-    <p><a href='/calc'>Go to Calculator</a></p>
-    """
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-# Simple Calculator Page
-@app.route("/calc", methods=["GET", "POST"])
-def calc():
-    if request.method == "POST":
-        try:
-            a = int(request.form["a"])
-            b = int(request.form["b"])
-            result = a + b
-            return render_template_string("""
-                <h2>Result: {{a}} + {{b}} = {{result}}</h2>
-                <a href='/calc'>Try Again</a>
-            """, a=a, b=b, result=result)
-        except:
-            return "Invalid input. Please enter numbers only."
-    
-    return """
-    <form method="post">
-        <input type="text" name="a" placeholder="Enter number A" required>
-        <input type="text" name="b" placeholder="Enter number B" required>
-        <button type="submit">Add</button>
-    </form>
-    """
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    - name: Setup SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy on EC2
+      run: |
+        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          cd ~/mygitdemo
+
+          # Reset and pull latest code
+          git reset --hard
+          git pull origin main
+
+          # Install Python + dependencies
+          sudo apt-get update -y
+          sudo apt-get install -y python3 python3-pip
+          pip3 install --upgrade pip
+          pip3 install -r requirements.txt
+
+          # Kill old process if running
+          pkill -f "python3 app.py" || true
+
+          # Run app in background
+          nohup python3 app.py > app.log 2>&1 &
+        EOF
