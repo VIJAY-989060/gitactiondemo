@@ -32,9 +32,24 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
 
-          # Stop any old process
-          pkill -f "venv/bin/python app.py" || true
-          
           # ==> FIX IS HERE <==
-          # Start the app in a new session to prevent it from being terminated
-          setsid nohup venv/bin/python app.py > app.log 2>&1 &
+          # Create a systemd service file to run the app as a background service
+          sudo tee /etc/systemd/system/myapp.service > /dev/null <<'EOF'
+          [Unit]
+          Description=My Flask App Service
+          After=network.target
+
+          [Service]
+          User=${{ secrets.EC2_USER }}
+          WorkingDirectory=/home/${{ secrets.EC2_USER }}/mygitdemo
+          ExecStart=/home/${{ secrets.EC2_USER }}/mygitdemo/venv/bin/python app.py
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          # Reload systemd to recognize the new service, then enable and restart it
+          sudo systemctl daemon-reload
+          sudo systemctl enable myapp.service
+          sudo systemctl restart myapp.service
