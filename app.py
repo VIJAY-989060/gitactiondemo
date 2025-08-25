@@ -5,7 +5,7 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return """
-    <h1>Welcome to My Flask App on AWS EC2!</h1>
+    <h1>Welcome to My Flask python App on AWS EC2!</h1>
     <p>This app is deployed automatically using GitHub Actions 🚀</p>
     <p><a href='/calc'>Go to Calculator</a></p>
     """
